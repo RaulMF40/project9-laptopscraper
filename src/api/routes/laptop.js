@@ -1,6 +1,6 @@
 const {
   addLaptop,
-  getLaptop,
+  getLaptops,
   editLaptop,
   deleteLaptop
 } = require('../controllers/laptop')
@@ -8,7 +8,7 @@ const {
 const laptopsRouter = require('express').Router()
 
 laptopsRouter.post('/add', addLaptop)
-laptopsRouter.get('/', getLaptop)
+laptopsRouter.get('/', getLaptops)
 laptopsRouter.put('/:id', editLaptop)
 laptopsRouter.delete('/:id', deleteLaptop)
 
