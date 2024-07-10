@@ -1,6 +1,6 @@
 const puppeteer = require('puppeteer')
 const fs = require('fs')
-const connectDB = require('../config/db')
+const { connectDB } = require('../config/db')
 const Laptop = require('../api/models/laptop')
 
 const scrapeProducts = async () => {
@@ -25,6 +25,15 @@ const scrapeProducts = async () => {
     console.log('Navigating to URL...')
     await page.goto(url)
     console.log('URL loaded.')
+
+    // Cerrar modal de cookies
+    try {
+      await page.waitForSelector('#sp-cc-accept', { timeout: 5000 })
+      await page.click('#sp-cc-accept')
+      console.log('Cookies modal closed.')
+    } catch (error) {
+      console.log('No cookies modal found or failed to close cookies modal.')
+    }
 
     await page.waitForSelector('#twotabsearchtextbox')
     await page.type('#twotabsearchtextbox', 'laptop')
@@ -62,12 +71,18 @@ const scrapeProducts = async () => {
         }
 
         const nextPageButton = await page.$('.s-pagination-next')
-        if (await nextPageButton.evaluate((node) => node.disabled)) {
+        if (
+          !nextPageButton ||
+          (await nextPageButton.evaluate((node) => node.disabled))
+        ) {
           console.log('No more pages to navigate.')
           hasNextPage = false
         } else {
           console.log('Navigating to next page...')
-          await nextPageButton.click()
+          await Promise.all([
+            page.waitForNavigation({ waitUntil: 'networkidle2' }),
+            nextPageButton.click()
+          ])
         }
       } catch (error) {
         console.error(`Failed to scrape page: ${error}`)
@@ -83,7 +98,9 @@ const scrapeProducts = async () => {
         await productSchema.save()
         console.log(`Successfully saved ${productSchema.title} to the database`)
       } catch (error) {
-        console.error(`Failed to save ${productSchema.title} to the database`)
+        console.error(
+          `Failed to save ${productSchema.title} to the database: ${error}`
+        )
       }
     }
   } catch (error) {
@@ -107,3 +124,4 @@ const scrapeProducts = async () => {
 }
 
 scrapeProducts()
+
